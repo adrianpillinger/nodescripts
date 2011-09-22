@@ -1,35 +1,62 @@
 var http = require('http');
+var Backbone = require('backbone');
 
-var MYAPP = function() {
+(function(){
+	
+	// set root to this (the scope of this module during execution)
+	var root = this;
+	
+	// namespace of greenboard app
+	Greenboard = root.Greenboard = {};
+
 	var boardsRequest = {
-	  host: 'localhost',
-	  port: 8080,
-	  path: '/greenboard/web/boards'
+		host: 'www.google.co.uk',
+		port: 80,
+		path: '/'
 	};
-
-	var pollBoards = function() {	
+	
+	Greenboard.poll = function poll() {	
 		// fetch boards and process
 		http.get(boardsRequest, function(res) {
-		  console.log("Got response: " + res.statusCode);
-		  res.on('data', function(data) {
-		  	console.log(data.toString('utf-8'));
-			// poll again in 2 seconds 
-			setTimeout(pollBoards, 2000);
-		  });
+			console.log("Got response: " + res.statusCode);
+			setTimeout(poll, 2000);
+			res.on('data', function(data) {
+				// console.log(data.toString('utf-8'));
+			});
 		// handle error
 		}).on('error', function(e) {
-		  console.log("Got error: " + e.message);
+			console.log("Got error: " + e.message);
 		});
 	};
+	
+	var Board = Backbone.Model.extend({
+		validate: function(attrs) {
+			if (attrs.name.length > 10)
+			{
+				return "name is too long";
+			}
+		}
+	});
 
-	return {
-		poll : pollBoards
+	var changeLogger = function() {
+		console.log('change name');
 	}
-}();
+	
+	Greenboard.demo = function demo() {	
+		var board1 = new Board;
+		var board2 = new Board;
+		board1.bind('change:name', changeLogger);
+		board2.bind('change:name', changeLogger);
+		
+		var errorHandler = {error: console.log('error')};
+		board1.set({name:'board 1'}, errorHandler);
+		board2.set({name:'a very long name for a board'}, errorHandler);
+	};
+	
+}).call(this);
 
-MYAPP.poll();
 
-//http.createServer(function (req, res) {
-//	MYAPP.handleRequest(req, res);
-//}).listen(1337, "127.0.0.1");
-//console.log('Server running at http://127.0.0.1:1337/');
+Greenboard.poll();
+Greenboard.demo();
+
+
